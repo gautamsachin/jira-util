@@ -1,38 +1,47 @@
-# Jira Util: Privacy-First Jira Pulse API
+# jira-util (Backend Only)
 
-A lightweight backend for checking Jira updates with secure OAuth, focused JQL filtering, AI summarization, and a sanitized API response.
+`jira-util` is a backend service for securely fetching and summarizing Jira activity.
 
-## What this repository contains
+> Note: This repository intentionally does **not** include any browser extension/frontend code.
 
-- **Vercel Node.js middleware** (`api/`) for OAuth and Jira data access.
-- **Shared utilities** (`lib/`) for Jira API calls and AI summarization.
-- **Architecture notes** (`docs/`) describing the backend flow.
+## Scope
 
-## Core ideas implemented
+This project provides:
+- Atlassian OAuth middleware endpoints (`/api/oauth/*`)
+- Jira activity query endpoint with JQL filtering (`/api/jira/activity`)
+- AI-assisted issue summarization (`lib/summarize.js`)
+- Sanitized, privacy-first API payloads for downstream clients
 
-1. **Secure OAuth Middleware**
-   - OAuth handshake and token exchange handled server-side only.
-2. **Intelligent Filter with JQL**
-   - Backend searches for issues where the user is assigned or mentioned.
-3. **AI Summarization Layer**
-   - Ticket descriptions/comments are distilled into short bullet summaries.
-4. **Privacy-First Bridge**
-   - API returns a minimal, sanitized payload for any consuming client.
+## Repository layout
+
+- `api/oauth/start.js` — starts Atlassian OAuth flow and sets state cookie.
+- `api/oauth/callback.js` — validates state and exchanges authorization code for tokens.
+- `api/jira/activity.js` — fetches filtered issues and enriches with summaries.
+- `lib/jira.js` — Jira REST search helper and issue sanitization.
+- `lib/summarize.js` — OpenAI summary helper with fallback behavior.
+- `docs/architecture.md` — high-level backend architecture and API contract.
+
+## Environment variables
+
+Required:
+- `ATLASSIAN_CLIENT_ID`
+- `ATLASSIAN_CLIENT_SECRET`
+- `ATLASSIAN_REDIRECT_URI`
+
+Optional:
+- `OPENAI_API_KEY` (enables AI summaries)
+- `SESSION_SIGNING_SECRET` (recommended for stronger session/state handling)
 
 ## Quick start
 
-1. Set Vercel environment variables:
-   - `ATLASSIAN_CLIENT_ID`
-   - `ATLASSIAN_CLIENT_SECRET`
-   - `ATLASSIAN_REDIRECT_URI`
-   - `SESSION_SIGNING_SECRET`
-   - `OPENAI_API_KEY` (optional for AI summaries)
-2. Deploy `api/` and `lib/` to Vercel.
-3. Call the API from your preferred client.
+1. Configure environment variables.
+2. Deploy the `api/` handlers in your Vercel project.
+3. Call:
+   - `GET /api/oauth/start`
+   - `GET /api/oauth/callback`
+   - `GET /api/jira/activity`
 
-## Suggested next steps
+## Current limitations
 
-- Replace state cookie placeholder with signed session storage.
-- Add encrypted token storage with rotation.
-- Enforce CSRF checks and strict origin allowlists.
-- Add user-specific JQL customization and pagination.
+- OAuth state and token persistence are scaffold-level and should be hardened for production.
+- Origin allowlists, CSRF protections, and durable encrypted token storage are still recommended before live rollout.
