@@ -1,47 +1,50 @@
-# jira-util (Backend Only)
+# Jira AI Catchup Engine
 
-`jira-util` is a backend service for securely fetching and summarizing Jira activity.
+Serverless backend for a browser extension that turns noisy Jira activity into concise daily catchups.
 
-> Note: This repository intentionally does **not** include any browser extension/frontend code.
+## What it does
 
-## Scope
+- OAuth orchestration (authorization code exchange + refresh token flow)
+- Jira cloudId discovery through Atlassian accessible resources
+- JQL-powered issue fetches via Jira Search API
+- Mention and status extraction from ticket metadata/comments
+- Optional AI summarization (OpenAI Responses API) with secure server-side API keys
+- Strict extension-only CORS
 
-This project provides:
-- Atlassian OAuth middleware endpoints (`/api/oauth/*`)
-- Jira activity query endpoint with JQL filtering (`/api/jira/activity`)
-- AI-assisted issue summarization (`lib/summarize.js`)
-- Sanitized, privacy-first API payloads for downstream clients
+## API endpoint
 
-## Repository layout
+`POST /api/catchup`
 
-- `api/oauth/start.js` — starts Atlassian OAuth flow and sets state cookie.
-- `api/oauth/callback.js` — validates state and exchanges authorization code for tokens.
-- `api/jira/activity.js` — fetches filtered issues and enriches with summaries.
-- `lib/jira.js` — Jira REST search helper and issue sanitization.
-- `lib/summarize.js` — OpenAI summary helper with fallback behavior.
-- `docs/architecture.md` — high-level backend architecture and API contract.
+### Actions
+
+1. `oauth_exchange`
+   - Input: `code`, optional `redirectUri`
+   - Output: OAuth token payload + accessible resources
+2. `refresh_token`
+   - Input: `refreshToken`
+   - Output: refreshed token payload
+3. `catchup`
+   - Input: `accessToken`, `jql`, optional `cloudId`, `siteUrl`, `maxResults`
+   - Output: structured issue summaries with mentions
 
 ## Environment variables
 
-Required:
+Copy `.env.example` and set:
+
 - `ATLASSIAN_CLIENT_ID`
 - `ATLASSIAN_CLIENT_SECRET`
 - `ATLASSIAN_REDIRECT_URI`
+- `EXTENSION_ORIGIN` (`chrome-extension://<id>`)
+- `OPENAI_API_KEY` (optional)
+- `OPENAI_MODEL` (optional)
+- `REQUEST_TIMEOUT_MS` (optional)
 
-Optional:
-- `OPENAI_API_KEY` (enables AI summaries)
-- `SESSION_SIGNING_SECRET` (recommended for stronger session/state handling)
+## Local checks
 
-## Quick start
+```bash
+npm test
+```
 
-1. Configure environment variables.
-2. Deploy the `api/` handlers in your Vercel project.
-3. Call:
-   - `GET /api/oauth/start`
-   - `GET /api/oauth/callback`
-   - `GET /api/jira/activity`
+## Deploy
 
-## Current limitations
-
-- OAuth state and token persistence are scaffold-level and should be hardened for production.
-- Origin allowlists, CSRF protections, and durable encrypted token storage are still recommended before live rollout.
+Deploy to Vercel as a Node.js serverless project.
